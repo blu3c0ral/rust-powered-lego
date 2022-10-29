@@ -1,0 +1,21 @@
+[package]
+name = "rust-powered-lego"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+btleplug = "0.10.1"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1.10", features = ["sync"] }
+num-traits = "0.2.15"
+num-derive = "0.3.3"
+
+[dependencies.uuid]
+version = "1.2.1"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
