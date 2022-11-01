@@ -11,8 +11,8 @@ pub trait Serialized {
 /***************************************/
 
 pub struct HubPropertiesParams { 
-    property:           HubPropertiesProperties,
-    operation:          HubPropertiesOperations,
+    pub property:           HubPropertiesProperties,
+    pub operation:          HubPropertiesOperations,
 }
 
 #[repr(u8)]
@@ -56,7 +56,7 @@ impl Serialized for HubPropertiesParams {
 /***************************************/
 
 pub struct HubActionsParams {
-    action_type:        HubActionsTypes,
+    pub action_type:        HubActionsTypes,
 }
 
 pub enum HubActionsTypes {
@@ -77,5 +77,58 @@ pub enum HubActionsTypes {
 impl Serialized for HubActionsParams {
     fn serialize(&self) -> Vec<u8> {
         vec![self.action_type as u8]
+    }
+}
+
+
+
+/***************************************/
+/******* PortInformationRequest ********/
+/***************************************/
+
+pub struct PortInformationRequestParams {
+    pub port_id:            u8,
+    pub information_type:   PortInformationType,
+}
+
+pub enum PortInformationType {
+    PortValue                   = 0x00, // Port Value
+    ModeInfo                    = 0x01, // Mode Info
+    PossibleModeCombinations    = 0x02, //Possible Mode Combinations. Should only be used if the “Logical Combinable”-bit is set in the (MODE INFO Capabilities byte). I.e. in the Port Information 0x43
+}
+
+impl Serialized for PortInformationRequestParams {
+    fn serialize(&self) -> Vec<u8> {
+        vec![self.port_id, self.information_type as u8]
+    }
+}
+
+
+/***************************************/
+/***** PortModeInformationRequest ******/
+/***************************************/
+
+pub struct PortModeInformationRequestParams {
+    pub port_id: u8,
+    pub mode_id: u8,
+    pub information_type: PortModeInformationType,
+}
+
+pub enum PortModeInformationType {
+    Name            = 0x00,    // NAME	Name of the mode
+    Raw             = 0x01,    // RAW	The raw range
+    Pct             = 0x02,    // PCT	The percent range
+    Si              = 0x03,    // SI	The SI value range
+    Symbol          = 0x04,    // SYMBOL	The standard name of value
+    Mapping         = 0x05,    // MAPPING	 
+    Internal        = 0x06,    // Used internally
+    MotorBias       = 0x07,    // Motor Bias (0-100%)
+    CapabilityBits  = 0x08,    // Capability bits (6 bytes total)
+    ValueFormat     = 0x80,    // VALUE FORMAT	Value encoding
+}
+
+impl Serialized for PortModeInformationRequestParams {
+    fn serialize(&self) -> Vec<u8> {
+        vec![self.port_id, self.mode_id, self.information_type as u8]
     }
 }

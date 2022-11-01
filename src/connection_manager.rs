@@ -1,5 +1,3 @@
-use std::error::Error;
-use std::fmt;
 use std::time::Duration;
 use std::str::FromStr;
 use std::collections::HashMap;
@@ -9,17 +7,9 @@ use tokio::time;
 use btleplug::api::{BDAddr, Manager as _, Central, ScanFilter, Peripheral as _};
 use btleplug::platform::{Manager, Peripheral};
 
+use anyhow::{Result, anyhow};
 
-#[derive(Debug, Clone)]
-struct ConnectionManagerError;
-
-impl Error for ConnectionManagerError {}
-
-impl fmt::Display for ConnectionManagerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Connection manager couldn't complete your task")
-    }
-}
+use crate::hub::TechnicHub;
 
 struct PeripheralInfo {
     address: BDAddr,
@@ -34,7 +24,12 @@ impl ConnectionManager {
         Self {}
     }
 
-    pub async fn get_peripheral(&self, mut peripheral_name: Option<String>, mut bd_add: Option<BDAddr>) -> Result<Peripheral, Box<dyn Error>> {
+    pub async fn get_technic_hub(&self, peripheral_name: Option<String>, bd_add: Option<BDAddr>) -> Result<TechnicHub> {
+        let p = self.get_peripheral(peripheral_name, bd_add).await?;
+        TechnicHub::new(p).await
+    }
+
+    async fn get_peripheral(&self, mut peripheral_name: Option<String>, mut bd_add: Option<BDAddr>) -> Result<Peripheral> {
         if bd_add.is_none() {
             if let Ok(x) = BDAddr::from_str("00:00:00:00:00:00") {
                 bd_add = Some(x);
@@ -60,7 +55,7 @@ impl ConnectionManager {
                     if !is_connected {
                         println!("Connecting to peripheral {:?}...", &peripheral_info.local_name);
                         if let Err(err) = peripheral.connect().await {
-                            /*e*/println!("Error connecting to peripheral, skipping: {}", err);
+                            eprintln!("Error connecting to peripheral, skipping: {}", err);
                             continue;
                         }
                     }
@@ -70,12 +65,10 @@ impl ConnectionManager {
                 }
             }
         }
-        
-        println!("No connections found");
-        Err(Box::new(ConnectionManagerError))
+        Err(anyhow!("No connections found"))
     }
 
-    async fn get_peripherals(&self) -> Result<Vec<Peripheral>, Box<dyn Error>> {
+    async fn get_peripherals(&self) -> Result<Vec<Peripheral>> {
         let manager = Manager::new().await?;
         let adapter_list = manager.adapters().await?;
         if adapter_list.is_empty() {
@@ -96,7 +89,7 @@ impl ConnectionManager {
         Ok(peripherals)
     }
 
-    async fn get_peripheral_info(&self, peripheral: &Peripheral) -> Result<PeripheralInfo, Box<dyn Error>> {
+    async fn get_peripheral_info(&self, peripheral: &Peripheral) -> Result<PeripheralInfo> {
         let properties = peripheral.properties().await?;
         let def_str = String::from("(peripheral name unknown)");
         let local_name = properties.as_ref().unwrap()

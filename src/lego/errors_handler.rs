@@ -4,8 +4,6 @@ use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
 use super::MessageTypes;
-use super::communicator::RawMessageSlice;
-use super::communicator::MAX_MESSAGE_SIZE;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive)]
@@ -20,8 +18,8 @@ pub enum LegoErrorTypes {
     InternalError           = 0x08,     //  Internal ERROR
 }
 
-pub fn parse_lego_error(msg: RawMessageSlice) -> Result<String, Error> {
-    let slc = if let RawMessageSlice::CommandSpecificMessageSlice(x) = msg {x} else {vec![0x00; MAX_MESSAGE_SIZE]};
+pub fn parse_lego_error(msg: Vec<u8>) -> Result<String, Error> {
+    let slc = msg;
     let err_cmd = slc[0];
     let err_code = slc[1];
 

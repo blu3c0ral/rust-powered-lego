@@ -1,45 +1,36 @@
 use btleplug::api::{Peripheral as _, Characteristic, Service, WriteType};
 use btleplug::platform::{Peripheral};
 
+use anyhow::{Result, anyhow, Ok};
+
 
 use super::{MessageTypes, message_parameters::Serialized};
 
 pub const MAX_MESSAGE_SIZE: usize = 130;
-
-#[derive(Clone, Debug)]
-pub enum RawMessageSlice {
-    CommonMessageHeaderSlice(Vec<u8>),
-    CommandSpecificMessageSlice(Vec<u8>),
-}
 
 
 
 pub struct CommonMessageHeader {}
 
 impl CommonMessageHeader {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn get_header(&self, msg_type: MessageTypes) -> RawMessageSlice {
-        RawMessageSlice::CommonMessageHeaderSlice(vec![0x0, 0x0, msg_type as u8])
+    fn get_header(msg_type: MessageTypes) -> Vec<u8> {
+        vec![0x0, 0x0, msg_type as u8]      // [msg_len, 0, mag_type]
     }
 }
 
 
 
 
-pub struct Communicator<'a> {
-    peripheral: &'a Peripheral,
+pub struct Communicator {
+    peripheral: Peripheral,
     characteristic: Characteristic,
 }
 
-impl<'a> Communicator<'a> {
-    pub async fn new(peripheral: &'a Peripheral) -> Communicator<'a> {
-        peripheral.discover_services().await;
-        let pr = peripheral.properties().await.unwrap();
+impl Communicator {
+    pub async fn new(peripheral: Peripheral) -> Result<Self> {
+        peripheral.discover_services().await?;
         
-        let mut srvc: Option<Service> = None;
+        let srvc: Option<Service>;
         let mut c: Option<Characteristic> = None;
         for service in peripheral.services() {
             srvc = Some(service);
@@ -49,15 +40,36 @@ impl<'a> Communicator<'a> {
             }
             break;
         }
-
-        Self { peripheral, characteristic: c.unwrap() }
+        println!("Characteristics: {:?}", c);
+        Ok(Self { peripheral, characteristic: c.unwrap() })
     }
 
-    pub async fn send_message<T>(&self, mp: T) -> Result<(), btleplug::Error>
+    pub async fn send_message<T>(&self, mt: MessageTypes, mp: T) -> Result<()>
     where
         T: Serialized,
     {
         let write_type = WriteType::WithResponse;
-        self.peripheral.write(&self.characteristic, &mp.serialize(), write_type).await
+
+        let mut data = CommonMessageHeader::get_header(mt);
+        data.append(mp.serialize().as_mut());
+
+        let res = self.peripheral.write(
+            &self.characteristic, 
+            &data, 
+            write_type).await;
+
+        if res.is_err() {
+            Err(anyhow!("Couldn't send the message"))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn read_message(&self) -> Result<Vec<u8>> {
+        let mut res = self.peripheral.read(&self.characteristic).await?;
+        if res.is_empty() {
+            res = self.peripheral.read(&self.characteristic).await?;
+        }
+        Ok(res)
     }
 }
