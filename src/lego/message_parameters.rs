@@ -2,6 +2,10 @@
 // Simple command is transfered as is. Complicated command needs encoding.
 // See message_types for list of these commands / messages.
 
+use num_traits::ToPrimitive;
+
+use super::message_types::SubcommandType;
+
 pub trait Serialized {
     fn serialize(&self) -> Vec<u8>;
 }
@@ -109,9 +113,9 @@ impl Serialized for PortInformationRequestParams {
 /***************************************/
 
 pub struct PortModeInformationRequestParams {
-    pub port_id: u8,
-    pub mode_id: u8,
-    pub information_type: PortModeInformationType,
+    pub port_id:            u8,
+    pub mode_id:            u8,
+    pub information_type:   PortModeInformationType,
 }
 
 pub enum PortModeInformationType {
@@ -130,5 +134,96 @@ pub enum PortModeInformationType {
 impl Serialized for PortModeInformationRequestParams {
     fn serialize(&self) -> Vec<u8> {
         vec![self.port_id, self.mode_id, self.information_type as u8]
+    }
+}
+
+
+/***************************************/
+/********** PortOutputCommand **********/
+/***************************************/
+
+pub struct PortOutputCommandParams {
+    pub port_id: u8,
+    pub start_up_info: StartupAndCompletionInfo,
+    pub subcommand_id: SubcommandType,
+    pub payload: SubcommandPayload,
+}
+
+impl Serialized for PortOutputCommandParams {
+    fn serialize(&self) -> Vec<u8> {
+        let mut res = vec![self.port_id, self.start_up_info as u8, self.subcommand_id as u8];
+        res.append(self.payload.serialize().as_mut());
+        res
+    }
+}
+
+pub enum StartupAndCompletionInfo {
+    BufferAndNoAction               = 0b00000000,
+    BufferAndFeedback               = 0b00000001,
+    ExecuteImmediatelyAndNoAction   = 0b00010000,
+    ExecuteImmediatelyAndFeedback   = 0b00010001,
+}
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+/******************************************************************************/
+/*************************** Subcommands Parameters ***************************/
+/*************************** Subcommands Parameters ***************************/
+/*************************** Subcommands Parameters ***************************/
+/******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+pub enum SubcommandPayload {
+    StartSpeed(StartSpeedPayload),
+    GotoAbsolutePosition(GotoAbsolutePositionPayload)
+}
+
+impl Serialized for SubcommandPayload {
+    fn serialize(&self) -> Vec<u8> {
+        match self {
+            SubcommandPayload::StartSpeed(payload) => {
+                payload.serialize()
+            },
+            SubcommandPayload::GotoAbsolutePosition(payload) => {
+                payload.serialize()
+            }
+        }
+    }
+}
+
+pub struct StartSpeedPayload {
+    pub speed: i8,
+    pub max_power: i8,
+    pub use_profile: bool,
+}
+
+impl Serialized for StartSpeedPayload {
+    fn serialize(&self) -> Vec<u8> {
+        vec![
+            self.speed.to_be_bytes()[0], 
+            self.max_power.to_be_bytes()[0], 
+            self.use_profile as u8
+            ]
+    }
+}
+
+pub struct GotoAbsolutePositionPayload {
+    abs_pos: i32,
+    speed: i8,
+    max_power: i8,
+    end_state: i8,
+    use_profile: bool,
+}
+
+impl Serialized for GotoAbsolutePositionPayload {
+    fn serialize(&self) -> Vec<u8> {
+        vec![
+            
+            ]
     }
 }

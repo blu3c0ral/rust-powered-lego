@@ -9,7 +9,7 @@ use btleplug::platform::{Manager, Peripheral};
 
 use anyhow::{Result, anyhow};
 
-use crate::hub::TechnicHub;
+use crate::hub::Hub;
 
 struct PeripheralInfo {
     address: BDAddr,
@@ -24,9 +24,9 @@ impl ConnectionManager {
         Self {}
     }
 
-    pub async fn get_technic_hub(&self, peripheral_name: Option<String>, bd_add: Option<BDAddr>) -> Result<TechnicHub> {
+    pub async fn get_technic_hub(&self, peripheral_name: Option<String>, bd_add: Option<BDAddr>) -> Result<Hub> {
         let p = self.get_peripheral(peripheral_name, bd_add).await?;
-        TechnicHub::new(p).await
+        Hub::new(p).await
     }
 
     async fn get_peripheral(&self, mut peripheral_name: Option<String>, mut bd_add: Option<BDAddr>) -> Result<Peripheral> {

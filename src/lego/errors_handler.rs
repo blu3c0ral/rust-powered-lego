@@ -1,7 +1,6 @@
-use std::io::Error;
-
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+use anyhow::{Result, Ok, bail};
 
 use super::MessageTypes;
 
@@ -18,10 +17,10 @@ pub enum LegoErrorTypes {
     InternalError           = 0x08,     //  Internal ERROR
 }
 
-pub fn parse_lego_error(msg: Vec<u8>) -> Result<String, Error> {
+fn parse_lego_error(msg: &Vec<u8>) -> Result<String> {
     let slc = msg;
-    let err_cmd = slc[0];
-    let err_code = slc[1];
+    let err_cmd = slc[3];
+    let err_code = slc[4];
 
     let err: Option<LegoErrorTypes> = FromPrimitive::from_u8(err_code);
     let cmd: Option<MessageTypes> = FromPrimitive::from_u8(err_cmd);
@@ -33,5 +32,15 @@ pub fn parse_lego_error(msg: Vec<u8>) -> Result<String, Error> {
     err.map(|x| { err_str = format!("{:?}", x)});
 
     Ok(format!("[Error] On command {}: {}", cmd_str, err_str))
+}
+
+pub fn check_for_lego_error(msg: &Vec<u8>) -> Result<()> {
+    if msg.len() < 3 {
+        bail!("[Error] Not a valid message")
+    }
+    if msg[2] == 0x05 {
+        bail!(parse_lego_error(msg).unwrap())
+    }
+    Ok(())
 }
 

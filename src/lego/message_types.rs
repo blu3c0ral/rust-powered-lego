@@ -1,8 +1,12 @@
 use num_derive::FromPrimitive;
 
+
+//
+// Parameters structs for (some of the) MessageTypes is located in message_parameters.rs file
+//
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive)]
-pub enum MessageTypes {                          //  Comm.	    Rply2   Notes
+pub enum MessageTypes {                             //  Comm.	    Rply2   Notes
     HubProperties                       = 0x01,     //  Down + Up   0x01    Set or retrieve standard Hub Property information
     HubActions                          = 0x02,     //  Down + Up	0x02	Perform actions on connected hub
     HubAlerts                           = 0x03,     //  Down + Up	0x03	Subscribe or retrieve Hub alerts
@@ -29,7 +33,28 @@ pub enum MessageTypes {                          //  Comm.	    Rply2   Notes
     PortOutputCommandFeedback           = 0x82,     //	Up	    0x81	Provides feedback on completed Port Output commands
 }
 
-pub const simple_commands: &'static [MessageTypes] = &[
-    MessageTypes::HubProperties,
-    MessageTypes::HubActions,
-];
+
+
+
+/***************************************/
+/*********** Subcommand Types **********/
+/***************************************/
+
+//
+// Parameters structs for (some of the) SubcommandType is located in message_parameters.rs file
+//
+pub enum SubcommandType {
+    StartPowerSync              = 0x02,
+    SetAccTime                  = 0x05,
+    SetDecTime                  = 0x06,
+    StartSpeed                  = 0x07,
+    StartSpeedSync              = 0x08,
+    StartSpeedForTime           = 0x09,
+    StartSpeedForTimeSync       = 0x0a,
+    StartSpeedForDegrees        = 0x0b,
+    StartSpeedForDegreesSync    = 0x0c,
+    GotoAbsolutePosition        = 0x0d,
+    GotoAbsolutePositionSync    = 0x0e,
+
+    // (TODO) This list is not complete
+}
