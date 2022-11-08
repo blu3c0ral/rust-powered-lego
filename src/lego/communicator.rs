@@ -2,6 +2,7 @@ use btleplug::api::{Peripheral as _, Characteristic, Service, WriteType};
 use btleplug::platform::{Peripheral};
 
 use anyhow::{Result, anyhow, Ok};
+use num_traits::ToPrimitive;
 
 
 use super::{MessageTypes, message_parameters::Serialized};
@@ -52,6 +53,11 @@ impl Communicator {
 
         let mut data = CommonMessageHeader::get_header(mt);
         data.append(mp.serialize().as_mut());
+        let size = data.len();
+        data[0] = size.to_u8().unwrap();
+        if size > 127 {
+            data.insert(1, 0x01);
+        }
 
         let res = self.peripheral.write(
             &self.characteristic, 
@@ -71,5 +77,21 @@ impl Communicator {
             res = self.peripheral.read(&self.characteristic).await?;
         }
         Ok(res)
+    }
+
+    /// This function is mainly for debugging and testing
+    pub async fn get_message_only<T>(&self, mt: MessageTypes, mp: T) -> Result<Vec<u8>>
+    where
+        T: Serialized,
+    {
+        let mut data = CommonMessageHeader::get_header(mt);
+        data.append(mp.serialize().as_mut());
+        let size = data.len();
+        data[0] = size.to_u8().unwrap();
+        if size > 127 {
+            data.insert(1, 0x01);
+        }
+
+        Ok(data)
     }
 }

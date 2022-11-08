@@ -56,5 +56,7 @@ pub enum SubcommandType {
     GotoAbsolutePosition        = 0x0d,
     GotoAbsolutePositionSync    = 0x0e,
 
+    WriteDirectModeData         = 0x51,
+
     // (TODO) This list is not complete
 }

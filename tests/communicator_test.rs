@@ -56,7 +56,7 @@ mod tests {
         assert_eq!(hub.is_ok(), true);
 
         let msg = hub.unwrap().get_port_information(
-            port_id, 
+            port_id as u8, 
             message_parameters::PortInformationType::PortValue
         ).await;
         

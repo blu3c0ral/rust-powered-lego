@@ -1,7 +1,6 @@
 // Dealing with all ports types and actions
-use anyhow::Result;
+use anyhow::{Result, Ok};
 use num_derive::FromPrimitive;
-
 
 
 use crate::{
@@ -11,14 +10,21 @@ use crate::{
             StartupAndCompletionInfo, 
             SubcommandPayload, 
             PortOutputCommandParams, 
-            StartSpeedPayload
+            StartSpeedPayload,
+            StartSpeedForDegreesPayload,
+            GotoAbsolutePositionPayload,
+            WriteDirectModeDataPayload,
+            SetAbsolutePositionPayload,
+            WriteDirectModeDataCommands
         }, 
         SubcommandType
     }
 };
 
+
+
 /* Below consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, PartialEq)]
 pub enum PortType {
     UnknownDevice                       = 0,
     SimpleMediumLinearMotor             = 1,
@@ -58,6 +64,14 @@ pub enum PortType {
     TechnicMediumAngularMotorGrey       = 75,   // Mindstorms
     TechnicLargeAngularMotorGrey        = 76    // Mindstorms
 }
+
+pub const MOTOR_TYPES: [PortType; 3] = [
+    PortType::TechnicLargeLinearMotor,
+    PortType::TechnicXlargeLinearMotor,
+    PortType::TrainMotor,
+];
+
+const ACC_DEC: u8 = 0x03;   // 0b 0000 0011
 
 pub struct Motor<'a> {
     pub hub:        &'a Hub,
@@ -115,7 +129,78 @@ impl<'a> Motor<'a> {
     }
 
     pub async fn stop_motor(&self, use_profile: bool, feedback: bool) -> Result<Vec<u8>> {
-        self.start_speed(0, 100, use_profile, feedback).await
+        self.start_speed(0, 0, use_profile, feedback).await
+    }
+
+    pub async fn set_abs_position(&self, position: i32, feedback: bool) -> Result<Vec<u8>> {
+        self.hub.send_output_command(
+            self.get_ouput_command_params(
+                SubcommandType::WriteDirectModeData,
+                SubcommandPayload::WriteDirectModeData(
+                    WriteDirectModeDataPayload {
+                        mode : MotorModes::Pos as u8,
+                        payload: WriteDirectModeDataCommands::SetAbsolutePosition(
+                            SetAbsolutePositionPayload {
+                                position
+                            },
+                        )
+                    }
+                ),
+                feedback
+            )
+        ).await
+    }
+
+    pub async fn go_to_aps_position(
+        &self, 
+        abs_pos: i32,
+        speed: i8,
+        max_power: i8,
+        end_state: i8,
+        use_profile: bool,
+        feedback: bool
+    ) -> Result<Vec<u8>> {
+        self.hub.send_output_command(
+            self.get_ouput_command_params(
+                SubcommandType::GotoAbsolutePosition,
+                SubcommandPayload::GotoAbsolutePosition(
+                    GotoAbsolutePositionPayload {
+                        abs_pos,
+                        speed,
+                        max_power,
+                        end_state,
+                        use_profile,
+                        acc_dec: ACC_DEC,
+                    }
+                ),
+                feedback
+        )).await
+    }
+
+    pub async fn start_speed_for_deg (
+        &self, 
+        degrees: i32,
+        speed: i8,
+        max_power: i8,
+        end_state: i8,
+        use_profile: bool,
+        feedback: bool
+    ) -> Result<Vec<u8>> {
+        self.hub.send_output_command(
+            self.get_ouput_command_params(
+                SubcommandType::StartSpeedForDegrees,
+                SubcommandPayload::StartSpeedForDegrees(
+                    StartSpeedForDegreesPayload {
+                        degrees,
+                        speed,
+                        max_power,
+                        end_state,
+                        use_profile,
+                        acc_dec: ACC_DEC,
+                    }
+                ),
+                feedback
+        )).await
     }
 
     
@@ -123,3 +208,12 @@ impl<'a> Motor<'a> {
 }
 
 
+// Below values are empirical. No official documentation has been found.
+pub enum MotorModes {
+    Power   = 0x00,
+    Speed   = 0x01,
+    Pos     = 0x02,
+    Apos    = 0x03,
+    Load    = 0x04,
+    Calib   = 0x05,
+}

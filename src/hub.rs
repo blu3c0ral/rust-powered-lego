@@ -23,7 +23,7 @@ use crate::lego::message_parameters:: {
     PortModeInformationRequestParams,
     PortOutputCommandParams
 };
-use crate::ports::{Motor, PortType};
+use crate::ports::{Motor, PortType, MOTOR_TYPES};
 
 
 // (TODO) Implement device checking of these values
@@ -120,10 +120,7 @@ impl Hub {
         match reply {
             PortInfoReply::PortInfoValueReplyParsed(val) => {
                 if val.port_type.is_some() {
-                    if !vec![
-                        PortType::TechnicLargeLinearMotor as u8,
-                        PortType::TechnicXlargeLinearMotor as u8,
-                    ].contains(&(val.port_type.unwrap() as u8)) {
+                    if !MOTOR_TYPES.contains(&(val.port_type.unwrap())) {
                         bail!("Got port type not compatible with a motor type")
                     };
                 };

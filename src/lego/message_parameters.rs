@@ -2,8 +2,6 @@
 // Simple command is transfered as is. Complicated command needs encoding.
 // See message_types for list of these commands / messages.
 
-use num_traits::ToPrimitive;
-
 use super::message_types::SubcommandType;
 
 pub trait Serialized {
@@ -143,10 +141,10 @@ impl Serialized for PortModeInformationRequestParams {
 /***************************************/
 
 pub struct PortOutputCommandParams {
-    pub port_id: u8,
-    pub start_up_info: StartupAndCompletionInfo,
-    pub subcommand_id: SubcommandType,
-    pub payload: SubcommandPayload,
+    pub port_id:        u8,
+    pub start_up_info:  StartupAndCompletionInfo,
+    pub subcommand_id:  SubcommandType,
+    pub payload:        SubcommandPayload,
 }
 
 impl Serialized for PortOutputCommandParams {
@@ -180,7 +178,9 @@ pub enum StartupAndCompletionInfo {
 
 pub enum SubcommandPayload {
     StartSpeed(StartSpeedPayload),
-    GotoAbsolutePosition(GotoAbsolutePositionPayload)
+    StartSpeedForDegrees(StartSpeedForDegreesPayload),
+    GotoAbsolutePosition(GotoAbsolutePositionPayload),
+    WriteDirectModeData(WriteDirectModeDataPayload),
 }
 
 impl Serialized for SubcommandPayload {
@@ -189,41 +189,142 @@ impl Serialized for SubcommandPayload {
             SubcommandPayload::StartSpeed(payload) => {
                 payload.serialize()
             },
+            SubcommandPayload::StartSpeedForDegrees(payload) => {
+                payload.serialize()
+            },
             SubcommandPayload::GotoAbsolutePosition(payload) => {
                 payload.serialize()
-            }
+            },
+            SubcommandPayload::WriteDirectModeData(payload) => {
+                payload.serialize()
+            },
         }
     }
 }
 
+
+/***************************************/
+/************* StartSpeed **************/
+/***************************************/
+
 pub struct StartSpeedPayload {
-    pub speed: i8,
-    pub max_power: i8,
-    pub use_profile: bool,
+    pub speed:          i8,
+    pub max_power:      i8,
+    pub use_profile:    bool,
 }
 
 impl Serialized for StartSpeedPayload {
     fn serialize(&self) -> Vec<u8> {
         vec![
-            self.speed.to_be_bytes()[0], 
-            self.max_power.to_be_bytes()[0], 
+            self.speed.to_le_bytes()[0], 
+            self.max_power.to_le_bytes()[0], 
             self.use_profile as u8
             ]
     }
 }
 
+
+/***************************************/
+/******** StartSpeedForDegrees *********/
+/***************************************/
+
+pub struct StartSpeedForDegreesPayload {
+    pub degrees:        i32,
+    pub speed:          i8,
+    pub max_power:      i8,
+    pub end_state:      i8,
+    pub use_profile:    bool,
+    pub acc_dec:        u8,
+}
+
+impl Serialized for StartSpeedForDegreesPayload {
+    fn serialize(&self) -> Vec<u8> {
+        let mut data = Vec::from(self.degrees.to_le_bytes());
+        data.append(vec![
+            self.speed.to_le_bytes()[0],
+            self.max_power.to_le_bytes()[0],
+            self.end_state.to_le_bytes()[0],
+            self.acc_dec, //self.use_profile as u8,
+            self.acc_dec,
+        ].as_mut());
+        data
+    }
+}
+
+
+/***************************************/
+/******** GotoAbsolutePosition *********/
+/***************************************/
+
 pub struct GotoAbsolutePositionPayload {
-    abs_pos: i32,
-    speed: i8,
-    max_power: i8,
-    end_state: i8,
-    use_profile: bool,
+    pub abs_pos:        i32,
+    pub speed:          i8,
+    pub max_power:      i8,
+    pub end_state:      i8,
+    pub use_profile:    bool,
+    pub acc_dec:        u8,
 }
 
 impl Serialized for GotoAbsolutePositionPayload {
     fn serialize(&self) -> Vec<u8> {
-        vec![
-            
-            ]
+        let mut data = Vec::from(self.abs_pos.to_le_bytes());
+        data.append(vec![
+            self.speed.to_le_bytes()[0],
+            self.max_power.to_le_bytes()[0],
+            self.end_state.to_le_bytes()[0],
+            self.use_profile as u8,
+            self.acc_dec,
+        ].as_mut());
+        data
+    }
+}
+
+
+/***************************************/
+/********* WriteDirectModeData *********/
+/***************************************/
+
+pub struct WriteDirectModeDataPayload {
+    pub mode:       u8,
+    pub payload:    WriteDirectModeDataCommands,
+}
+
+impl Serialized for WriteDirectModeDataPayload {
+    fn serialize(&self) -> Vec<u8> {
+        let mut data = vec![self.mode];
+        data.append(self.payload.serialize().as_mut());
+        data
+    }
+}
+
+pub enum WriteDirectModeDataCommands {
+    SetAbsolutePosition(SetAbsolutePositionPayload),
+}
+
+impl Serialized for WriteDirectModeDataCommands {
+    fn serialize(&self) -> Vec<u8> {
+        match self {
+            WriteDirectModeDataCommands::SetAbsolutePosition(payload) => {
+                payload.serialize()
+            },
+        }
+    }
+}
+
+
+/************* WriteDirectModeDataCommands *************/
+
+
+/***************************************/
+/********* SetAbsolutePosition *********/
+/***************************************/
+
+pub struct SetAbsolutePositionPayload {
+    pub position: i32,
+}
+
+impl Serialized for SetAbsolutePositionPayload {
+    fn serialize(&self) -> Vec<u8> {
+        Vec::from(self.position.to_le_bytes())
     }
 }
