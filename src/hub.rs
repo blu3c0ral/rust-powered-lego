@@ -1,4 +1,5 @@
 use core::result::Result::Ok;
+use async_trait::async_trait;
 use num_traits::FromPrimitive;
 
 //use anyhow::Ok;
@@ -9,6 +10,7 @@ use anyhow::Result;
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
 
+use crate::HubType;
 use crate::lego::{
     Communicator,
     MessageTypes,
@@ -32,6 +34,7 @@ pub enum HubTypes {
     HubHub,             // # item: 88009
 }
 
+#[allow(dead_code)]
 enum HubTypesSystemId {
     TechnicHubSystemId  = 0b1000000,
     HubHubSystemId      = 0b1000001,
@@ -46,14 +49,17 @@ pub struct Hub {
     communicator: Communicator,
 }
 
-
 impl Hub {
     pub async fn new(p: Peripheral) -> Result<Self> {
         let communicator = Communicator::new(p).await?;
         Ok(Self { communicator })
     }
+}
 
-    pub async fn shut_down_hub(&self) -> Result<()> {
+#[async_trait]
+impl HubType for Hub {
+
+    async fn shut_down_hub(&self) -> Result<()> {
         self.communicator.send_message(
             MessageTypes::HubActions,
             HubActionsParams {
@@ -62,7 +68,7 @@ impl Hub {
         ).await
     }
 
-    pub async fn get_port_information(
+    async fn get_port_information(
         &self, 
         port_id: u8, 
         info_type: PortInformationType
@@ -84,7 +90,7 @@ impl Hub {
         }
     }
 
-    pub async fn get_mode_information(
+    async fn get_mode_information(
         &self, 
         port_id: TechnicHubPorts, 
         mode_id: u8, 
@@ -103,7 +109,7 @@ impl Hub {
     }
 
 
-    pub async fn send_output_command(&self, subcommand: PortOutputCommandParams)-> Result<Vec<u8>> {
+    async fn send_output_command(&self, subcommand: PortOutputCommandParams)-> Result<Vec<u8>> {
         self.communicator.send_message(
             MessageTypes::PortOutputCommand,
             subcommand
@@ -111,7 +117,7 @@ impl Hub {
         self.communicator.read_message().await
     }
 
-    pub async fn get_motor(&self, port_id: u8) -> Result<Motor> {
+    async fn get_motor(&self, port_id: u8) -> Result<Motor> {
         let reply = self.get_port_information(
             port_id, 
             PortInformationType::PortValue

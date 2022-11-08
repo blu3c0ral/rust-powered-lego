@@ -79,7 +79,7 @@ impl Communicator {
         Ok(res)
     }
 
-    /// This function is mainly for debugging and testing
+    // This function is mainly for debugging and testing
     pub async fn get_message_only<T>(&self, mt: MessageTypes, mp: T) -> Result<Vec<u8>>
     where
         T: Serialized,
@@ -87,6 +87,8 @@ impl Communicator {
         let mut data = CommonMessageHeader::get_header(mt);
         data.append(mp.serialize().as_mut());
         let size = data.len();
+
+        // Yes, it is assumed that the maximal length is ok here. The Docs are unclear about different encoding.
         data[0] = size.to_u8().unwrap();
         if size > 127 {
             data.insert(1, 0x01);

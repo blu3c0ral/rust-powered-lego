@@ -10,7 +10,7 @@ mod tests {
         lego::{
             message_parameters,
         },
-        hub::TechnicHubPorts
+        hub::TechnicHubPorts, HubType
     };
 
     use tokio::time;
@@ -39,7 +39,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_port_information() {
-        let port_id = TechnicHubPorts::A;
+        let port_id = TechnicHubPorts::LED;
 
         let cm = ConnectionManager::new();
 
@@ -57,7 +57,7 @@ mod tests {
 
         let msg = hub.unwrap().get_port_information(
             port_id as u8, 
-            message_parameters::PortInformationType::PortValue
+            message_parameters::PortInformationType::ModeInfo
         ).await;
         
         
@@ -73,7 +73,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_mode_information_test() {
-        let port_id = TechnicHubPorts::A;
+        let port_id = TechnicHubPorts::LED;
 
         let cm = ConnectionManager::new();
 

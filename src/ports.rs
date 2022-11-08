@@ -1,5 +1,6 @@
 // Dealing with all ports types and actions
 use anyhow::{Result, Ok};
+use async_trait::async_trait;
 use num_derive::FromPrimitive;
 
 
@@ -9,16 +10,18 @@ use crate::{
         message_parameters::{
             StartupAndCompletionInfo, 
             SubcommandPayload, 
-            PortOutputCommandParams, 
+            PortOutputCommandParams,
+            SetAccTimePayload,
+            SetDecTimePayload,
             StartSpeedPayload,
             StartSpeedForDegreesPayload,
             GotoAbsolutePositionPayload,
             WriteDirectModeDataPayload,
             SetAbsolutePositionPayload,
-            WriteDirectModeDataCommands
+            WriteDirectModeDataCommands,
         }, 
         SubcommandType
-    }
+    }, MotorType, HubType
 };
 
 
@@ -71,7 +74,10 @@ pub const MOTOR_TYPES: [PortType; 3] = [
     PortType::TrainMotor,
 ];
 
-const ACC_DEC: u8 = 0x03;   // 0b 0000 0011
+
+pub const ACC: u8 = 0x01;           // 0b 0000 0001
+pub const DEC: u8 = 0x02;           // 0b 0000 0010
+pub const ACC_DEC: u8 = ACC + DEC;  // 0b 0000 0011
 
 pub struct Motor<'a> {
     pub hub:        &'a Hub,
@@ -106,8 +112,46 @@ impl<'a> Motor<'a> {
 
         }
     }
+}
 
-    pub async fn start_speed(
+#[async_trait]
+impl<'a> MotorType for Motor<'a> {
+
+    async fn set_acceleration_time(
+        &self, 
+        time: i16,
+        feedback: bool,
+    ) -> Result<Vec<u8>> {
+        self.hub.send_output_command(
+            self.get_ouput_command_params(
+                SubcommandType::SetAccTime,
+                SubcommandPayload::SetAccTime(
+                    SetAccTimePayload {
+                        time,
+                    }
+                ),
+                feedback
+        )).await
+    }
+
+    async fn set_deceleration_time(
+        &self,
+        time: i16,
+        feedback: bool,
+    ) -> Result<Vec<u8>> {
+        self.hub.send_output_command(
+            self.get_ouput_command_params(
+                SubcommandType::SetDecTime,
+                SubcommandPayload::SetDecTime(
+                    SetDecTimePayload {
+                        time,
+                    }
+                ),
+                feedback
+        )).await
+    }
+
+    async fn start_speed(
         &self, 
         speed: i8, 
         max_power: i8, 
@@ -128,11 +172,11 @@ impl<'a> Motor<'a> {
         )).await
     }
 
-    pub async fn stop_motor(&self, use_profile: bool, feedback: bool) -> Result<Vec<u8>> {
+    async fn stop_motor(&self, use_profile: bool, feedback: bool) -> Result<Vec<u8>> {
         self.start_speed(0, 0, use_profile, feedback).await
     }
 
-    pub async fn set_abs_position(&self, position: i32, feedback: bool) -> Result<Vec<u8>> {
+    async fn set_abs_position(&self, position: i32, feedback: bool) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
                 SubcommandType::WriteDirectModeData,
@@ -151,7 +195,7 @@ impl<'a> Motor<'a> {
         ).await
     }
 
-    pub async fn go_to_aps_position(
+    async fn go_to_aps_position(
         &self, 
         abs_pos: i32,
         speed: i8,
@@ -177,7 +221,7 @@ impl<'a> Motor<'a> {
         )).await
     }
 
-    pub async fn start_speed_for_deg (
+    async fn start_speed_for_deg (
         &self, 
         degrees: i32,
         speed: i8,
@@ -202,8 +246,6 @@ impl<'a> Motor<'a> {
                 feedback
         )).await
     }
-
-    
 
 }
 

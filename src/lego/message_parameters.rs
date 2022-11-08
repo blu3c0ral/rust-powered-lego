@@ -3,6 +3,10 @@
 // See message_types for list of these commands / messages.
 
 use super::message_types::SubcommandType;
+use super::super::ports:: {
+    ACC,
+    DEC,
+};
 
 pub trait Serialized {
     fn serialize(&self) -> Vec<u8>;
@@ -177,6 +181,8 @@ pub enum StartupAndCompletionInfo {
 
 
 pub enum SubcommandPayload {
+    SetAccTime(SetAccTimePayload),
+    SetDecTime(SetDecTimePayload),
     StartSpeed(StartSpeedPayload),
     StartSpeedForDegrees(StartSpeedForDegreesPayload),
     GotoAbsolutePosition(GotoAbsolutePositionPayload),
@@ -186,6 +192,12 @@ pub enum SubcommandPayload {
 impl Serialized for SubcommandPayload {
     fn serialize(&self) -> Vec<u8> {
         match self {
+            SubcommandPayload::SetAccTime(payload) => {
+                payload.serialize()
+            },
+            SubcommandPayload::SetDecTime(payload) => {
+                payload.serialize()
+            },
             SubcommandPayload::StartSpeed(payload) => {
                 payload.serialize()
             },
@@ -199,6 +211,44 @@ impl Serialized for SubcommandPayload {
                 payload.serialize()
             },
         }
+    }
+}
+
+
+/***************************************/
+/************* SetAccTime **************/
+/***************************************/
+
+pub struct SetAccTimePayload {
+    pub time:   i16,
+}
+
+impl Serialized for SetAccTimePayload {
+    fn serialize(&self) -> Vec<u8> {
+        let mut data = Vec::from(self.time.to_le_bytes());
+        data.append(vec![
+            ACC,
+        ].as_mut());
+        data
+    }
+}
+
+
+/***************************************/
+/************* SetAccTime **************/
+/***************************************/
+
+pub struct SetDecTimePayload {
+    pub time:   i16,
+}
+
+impl Serialized for SetDecTimePayload {
+    fn serialize(&self) -> Vec<u8> {
+        let mut data = Vec::from(self.time.to_le_bytes());
+        data.append(vec![
+            DEC,
+        ].as_mut());
+        data
     }
 }
 
@@ -257,7 +307,7 @@ impl Serialized for StartSpeedForDegreesPayload {
 /***************************************/
 
 pub struct GotoAbsolutePositionPayload {
-    pub abs_pos:        i32,
+    pub abs_pos:        i32,        // Degrees
     pub speed:          i8,
     pub max_power:      i8,
     pub end_state:      i8,

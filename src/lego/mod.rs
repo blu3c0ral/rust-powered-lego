@@ -2,6 +2,7 @@ mod message_types;
 mod communicator;
 mod errors_handler;
 pub mod message_parameters;
+pub mod consts;
 
 pub use self::message_types::MessageTypes;
 pub use self::message_types::SubcommandType;

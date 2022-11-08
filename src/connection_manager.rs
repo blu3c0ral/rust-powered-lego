@@ -14,7 +14,7 @@ use crate::hub::Hub;
 struct PeripheralInfo {
     address: BDAddr,
     local_name: String,
-    manufacturer_data: HashMap<u16, Vec<u8>>
+    // manufacturer_data: HashMap<u16, Vec<u8>>
 }
 
 pub struct ConnectionManager {}
@@ -103,7 +103,11 @@ impl ConnectionManager {
         .unwrap()
         .manufacturer_data);
         
-        Ok(PeripheralInfo { address: address, local_name: local_name.to_string(), manufacturer_data: manufacturer_data})
+        Ok(PeripheralInfo { 
+            address: address, 
+            local_name: local_name.to_string(), 
+            // manufacturer_data: manufacturer_data,
+    })
 
     }
 }

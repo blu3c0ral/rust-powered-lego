@@ -3,13 +3,12 @@ extern crate rust_powered_lego;
 #[cfg(test)]
 mod tests {
     use std::{str::FromStr, time::Duration};
-    use num_traits::ToPrimitive;
     use tokio::time;
 
     use btleplug::api::BDAddr;
     use rust_powered_lego::{
         hub::TechnicHubPorts, 
-        connection_manager::ConnectionManager
+        connection_manager::ConnectionManager, MotorType, HubType
     };
 
     #[tokio::test]
