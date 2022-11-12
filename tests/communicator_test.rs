@@ -91,15 +91,15 @@ mod tests {
 
         for i in 0..6 {
             let msg = hub.as_ref().unwrap().get_mode_information(
-                port_id, 
+                port_id as u8, 
                 i, 
-                message_parameters::PortModeInformationType::Name
+                message_parameters::PortModeInformationType::ValueFormat
             ).await;
     
             match msg {
                 Ok(_) => {
-                    //println!("Mode Information: {:?}", &msg.as_ref().unwrap());
-                    println!("Name: {}", from_utf8(&msg.as_ref().unwrap()[5..]).unwrap());
+                    println!("Mode Information: {:?}", &msg.as_ref().unwrap());
+                    // println!("Name: {}", from_utf8(&msg.as_ref().unwrap()[5..]).unwrap());
                 },
                 Err(e) => {
                     println!("{}", e);

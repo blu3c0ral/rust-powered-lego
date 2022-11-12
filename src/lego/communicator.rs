@@ -1,10 +1,14 @@
-use btleplug::api::{Peripheral as _, Characteristic, Service, WriteType};
+use std::pin::Pin;
+
+use btleplug::api::{Peripheral as _, Characteristic, Service, WriteType, ValueNotification};
 use btleplug::platform::{Peripheral};
 
 use anyhow::{Result, anyhow, Ok};
 use num_traits::ToPrimitive;
+use tokio_stream::{StreamExt, Stream};
 
 
+use super::check_for_lego_error;
 use super::{MessageTypes, message_parameters::Serialized};
 
 pub const MAX_MESSAGE_SIZE: usize = 130;
@@ -76,7 +80,13 @@ impl Communicator {
         if res.is_empty() {
             res = self.peripheral.read(&self.characteristic).await?;
         }
+        check_for_lego_error(&res)?;
         Ok(res)
+    }
+
+    pub async fn get_notification_stream(&self) -> Result<Pin<Box<dyn Stream<Item = ValueNotification> + Send>>> {
+        self.peripheral.subscribe(&self.characteristic).await?;
+        Ok(self.peripheral.notifications().await?)
     }
 
     // This function is mainly for debugging and testing

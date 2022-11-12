@@ -8,7 +8,7 @@ mod tests {
     use btleplug::api::BDAddr;
     use rust_powered_lego::{
         hub::TechnicHubPorts, 
-        connection_manager::ConnectionManager, MotorType, HubType
+        connection_manager::ConnectionManager, MotorType, HubType, ports::EndState
     };
 
     #[tokio::test]
@@ -31,7 +31,7 @@ mod tests {
 
         let hub = res.unwrap();
 
-        let res = hub.get_motor(port_id as u8).await;
+        let res = hub.get_motor(port_id).await;
 
         if res.is_err() {
             println!("{:?}", res.as_ref().err())
@@ -39,7 +39,7 @@ mod tests {
 
         let motor = res.unwrap();
 
-        let res = motor.start_speed(20, 100, false, true).await;
+        let res = motor.start_speed(100, 100, false, true).await;
 
         if res.is_err() {
             println!("[Error] {:?}", res.err());
@@ -56,7 +56,7 @@ mod tests {
             println!("[Error] {:?}", res.err());
         }
 
-        let res = motor.start_speed(-20, 100, false, false).await;
+        let res = motor.start_speed(-100, 100, false, false).await;
 
         if res.is_err() {
             println!("[Error] {:?}", res.err());
@@ -92,7 +92,7 @@ mod tests {
 
         let hub = res.unwrap();
 
-        let res = hub.get_motor(port_id as u8).await;
+        let res = hub.get_motor(port_id).await;
 
         if res.is_err() {
             println!("{:?}", res.as_ref().err())
@@ -104,7 +104,7 @@ mod tests {
             3,
             5,
             100,
-            127,
+            EndState::HOLD,
             true,
             true
         ).await;
@@ -117,11 +117,11 @@ mod tests {
 
         time::sleep(Duration::from_secs(10)).await;
 
-        let res = motor.go_to_aps_position(
+        let res = motor.go_to_abs_position(
             0,
             5,
             100,
-            127,
+            EndState::HOLD,
             true,
             true
         ).await;
@@ -154,7 +154,7 @@ mod tests {
 
         let hub = res.unwrap();
 
-        let res = hub.get_motor(port_id as u8).await;
+        let res = hub.get_motor(port_id).await;
 
         if res.is_err() {
             println!("{:?}", res.as_ref().err())
@@ -166,7 +166,7 @@ mod tests {
             180,
             50,
             25,
-            126,
+            EndState::HOLD,
             false,
             true
         ).await;
@@ -183,7 +183,7 @@ mod tests {
             180,
             -50,
             25,
-            126,
+            EndState::HOLD,
             false,
             true
         ).await;

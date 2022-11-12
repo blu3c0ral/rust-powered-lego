@@ -1,5 +1,7 @@
 use core::result::Result::Ok;
+use std::pin::Pin;
 use async_trait::async_trait;
+use btleplug::api::ValueNotification;
 use num_traits::FromPrimitive;
 
 //use anyhow::Ok;
@@ -9,12 +11,12 @@ use btleplug::platform::Peripheral;
 use anyhow::Result;
 use byteorder::ByteOrder;
 use byteorder::LittleEndian;
+use tokio_stream::Stream;
 
 use crate::HubType;
 use crate::lego::{
     Communicator,
     MessageTypes,
-    check_for_lego_error,
 };
 use crate::lego::message_parameters:: {
     HubActionsParams,
@@ -23,9 +25,10 @@ use crate::lego::message_parameters:: {
     PortInformationRequestParams,
     PortModeInformationType,
     PortModeInformationRequestParams,
+    PortInputFormatSetupSingleParams,
     PortOutputCommandParams
 };
-use crate::ports::{Motor, PortType, MOTOR_TYPES};
+use crate::ports::{Motor, PortType};
 
 
 // (TODO) Implement device checking of these values
@@ -54,6 +57,17 @@ impl Hub {
         let communicator = Communicator::new(p).await?;
         Ok(Self { communicator })
     }
+
+    async fn get_port_info(&self, port_id: u8, information_type: PortInformationType) -> Result<Vec<u8>> {
+        self.communicator.send_message(
+            MessageTypes::PortInformationRequest,
+            PortInformationRequestParams {
+                port_id: port_id as u8,
+                information_type: information_type,
+            }
+        ).await?;
+        self.communicator.read_message().await
+    }
 }
 
 #[async_trait]
@@ -68,31 +82,64 @@ impl HubType for Hub {
         ).await
     }
 
-    async fn get_port_information(
+    async fn get_notification(&self) -> Result<Pin<Box<dyn Stream<Item = ValueNotification> + Send>>> {
+        //self.communicator.subscribe_for_notifications().await?;
+        Ok(self.communicator.get_notification_stream().await?)
+    }
+
+    async fn get_port_info_value(
         &self, 
-        port_id: u8, 
-        info_type: PortInformationType
-    ) -> Result<PortInfoReply> 
-    {
-        self.communicator.send_message(
-            MessageTypes::PortInformationRequest,
-            PortInformationRequestParams {
-                port_id: port_id as u8,
-                information_type: info_type,
-            }
-        ).await?;
-        let msg = self.communicator.read_message().await?;
-        match check_for_lego_error(&msg) {
-            Ok(_) => {
-                parse_port_info_reply(msg)
-            }
-            Err(e) => bail!(e)
+        port_id: u8,
+    ) -> Result<PortInfoValueReply> {
+        let msg = self.get_port_info(
+            port_id, 
+            PortInformationType::PortValue).await?;
+        Ok(PortInfoValueReply {port_type: FromPrimitive::from_u8(msg[5])})
+    }
+
+    async fn get_port_info_raw_value(
+        &self,
+        port_id: u8
+    ) -> Result<i32> {
+        let msg = self.get_port_info(port_id, PortInformationType::PortValue).await?;
+        match msg[0] {
+            0x05 => Ok(i32::from_u8(msg[4]).unwrap()),
+            0x06 => Ok(i32::from_u16(u16::from_le_bytes(msg[4..6].try_into().unwrap())).unwrap()),
+            0x08 => Ok(i32::from_le_bytes(msg[4..8].try_into().unwrap())),
+            _ => bail!("Such port value reply is not currently supported.")
         }
     }
 
+    async fn get_port_info_mode(
+        &self, 
+        port_id: u8,
+    ) -> Result<PortInfoModeReply> {
+        let msg = self.get_port_info(
+            port_id, 
+            PortInformationType::ModeInfo).await?;
+        Ok(PortInfoModeReply {
+            port_id:            msg[3].clone(), 
+            info_type:          msg[4].clone(), 
+            capabilities:       parse_capabilities(msg[5]), 
+            total_mode_count:   msg[6].clone(), 
+            input_modes:        parse_io_modes(LittleEndian::read_u16(&msg[7..9])), 
+            output_modes:       parse_io_modes(LittleEndian::read_u16(&msg[9..11])),
+        })
+    }
+
+    async fn get_port_info_combinations(
+        &self, 
+        port_id: u8,
+    ) -> Result<PortInfoCombinationsReply> {
+        let msg = self.get_port_info(
+            port_id, 
+            PortInformationType::PossibleModeCombinations).await?;
+        Ok(PortInfoCombinationsReply {data: msg})
+    }    
+
     async fn get_mode_information(
         &self, 
-        port_id: TechnicHubPorts, 
+        port_id: u8, 
         mode_id: u8, 
         info_type: PortModeInformationType
     ) -> Result<Vec<u8>>
@@ -108,6 +155,25 @@ impl HubType for Hub {
         self.communicator.read_message().await
     }
 
+    async fn setup_port_input_format(
+        &self,
+        port_id:                u8,
+        mode_id:                u8,
+        delta:                  u32,
+        enable_notifications:   bool,
+    ) -> Result<()> {
+        self.communicator.send_message(
+            MessageTypes::PortInputFormatSetupSingle,
+            PortInputFormatSetupSingleParams {
+                port_id:                port_id,
+                mode_id:                mode_id,
+                delta:                  delta,
+                enable_notifications:   enable_notifications,
+            }
+        ).await?;
+        _ = self.communicator.read_message().await?;
+        Ok(())
+    }
 
     async fn send_output_command(&self, subcommand: PortOutputCommandParams)-> Result<Vec<u8>> {
         self.communicator.send_message(
@@ -118,102 +184,48 @@ impl HubType for Hub {
     }
 
     async fn get_motor(&self, port_id: u8) -> Result<Motor> {
-        let reply = self.get_port_information(
-            port_id, 
-            PortInformationType::PortValue
-        ).await?;
-
-        match reply {
-            PortInfoReply::PortInfoValueReplyParsed(val) => {
-                if val.port_type.is_some() {
-                    if !MOTOR_TYPES.contains(&(val.port_type.unwrap())) {
-                        bail!("Got port type not compatible with a motor type")
-                    };
-                };
-            }
-            _ => bail!("Got port type not compatible with a motor type")
-        }
-
+        // (TODO) Make sure this is really a motor!!
         Ok(Motor {
             hub: self,
-            port_id
+            port_id: port_id as u8
         })
-
-
     }
 
 
 
 }
 
-// This function parse an info request reply.
-// The function make a sanity check and then make sense out of the reply
-// into a formatted String.
-// (TODO) Parse PortValue and PossibleModeCombinations info replies.
-// (TODO) Export some struct out of the reply containing the values.
-//        Right now, there is nothing to do with this values...
-//
-// reply: Vec<u8> is the entire upstream message
-pub fn parse_port_info_reply(reply: Vec<u8>) -> Result<PortInfoReply> {
-    /* Sanity check */
-    if !((reply[2] == 0x43) || (reply[2] == 0x45) || (reply[2] == 0x46)) {
-        bail!("[Error] The submitted reply is not valid reply for port information request")
-    }
-
-    match reply[4] {
-        0x0 => Ok(
-            PortInfoReply::PortInfoValueReplyParsed(PortInfoValueReply {port_type: FromPrimitive::from_u8(reply[5])})
-        ),
-        0x1 => {
-            Ok(PortInfoReply::PortInfoModeReplyParsed(
-                PortInfoModeReply {
-                    port_id:            reply[3].clone(), 
-                    info_type:          reply[4].clone(), 
-                    capabilities:       parse_capabilities(reply[5]), 
-                    total_mode_count:   reply[6].clone(), 
-                    input_modes:        parse_io_modes(LittleEndian::read_u16(&reply[7..9])), 
-                    output_modes:       parse_io_modes(LittleEndian::read_u16(&reply[9..11])),
-                }
-            ))
-        },
-        0x2 => Ok(
-            PortInfoReply::PortInfoCombinationsReplyParsed(PortInfoCombinationsReply {data: reply})
-        ),
-        _   => bail!("[Error] Information type not supported")
-    }
-}
-
-#[derive(Debug)]
-pub enum PortInfoReply {
-    PortInfoValueReplyParsed(PortInfoValueReply),
-    PortInfoModeReplyParsed(PortInfoModeReply),
-    PortInfoCombinationsReplyParsed(PortInfoCombinationsReply),
-}
 
 // (TODO) Not fully implemented yet
 #[derive(Debug)]
 pub struct PortInfoValueReply {
-    port_type: Option<PortType>,
+    pub port_type: Option<PortType>,
 }
 
 // (TODO) Not fully implemented yet
 #[derive(Debug)]
 pub struct PortInfoCombinationsReply {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub struct PortRawValueReply {
+    pub port_id:    u8,
+    pub value:      i32,
 }
 
 #[derive(Debug)]
 pub struct PortInfoModeReply {
-    port_id:            u8,
-    info_type:          u8,
-    capabilities:       Vec<PortInfoModeReplyCapabilities>,
-    total_mode_count:   u8,
-    input_modes:        Vec<u8>,
-    output_modes:       Vec<u8>,
+    pub port_id:            u8,
+    pub info_type:          u8,
+    pub capabilities:       Vec<PortInfoModeReplyCapabilities>,
+    pub total_mode_count:   u8,
+    pub input_modes:        Vec<u8>,
+    pub output_modes:       Vec<u8>,
 }
 
 #[derive(Debug)]
-enum PortInfoModeReplyCapabilities {
+pub enum PortInfoModeReplyCapabilities {
     Output                  = 0x0,  // Output (seen from Hub)
     Input                   = 0x1,  // Input (seen from Hub)
     LogicalCombinable       = 0x2,  // Logical Combinable

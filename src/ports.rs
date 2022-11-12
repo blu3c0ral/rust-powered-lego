@@ -75,9 +75,19 @@ pub const MOTOR_TYPES: [PortType; 3] = [
 ];
 
 
-pub const ACC: u8 = 0x01;           // 0b 0000 0001
-pub const DEC: u8 = 0x02;           // 0b 0000 0010
-pub const ACC_DEC: u8 = ACC + DEC;  // 0b 0000 0011
+
+pub enum Profile {
+    Acc     = 0x01,     // 0b 0000 0001
+    Dec     = 0x02,     // 0b 0000 0010
+    AccDec  = 0x03,     // 0b 0000 0011
+}
+
+
+pub enum EndState {
+    FLOAT   = 0x00, // Another word for an inactive port. I.e. NO power power supplied to a motor (high impedance).
+    HOLD    = 0x7e, // = 126. When the motor is stopped (no rotation/movement), but the driver continues to keep the current position by actively.
+    BRAKE   = 0x7f, // = 127. When the motor is shorted through the motordriver.
+}
 
 pub struct Motor<'a> {
     pub hub:        &'a Hub,
@@ -98,15 +108,11 @@ impl<'a> Motor<'a> {
         &self,
         subcommand_id: SubcommandType,
         payload: SubcommandPayload,
-        feedback: bool
+        start_up_info: StartupAndCompletionInfo
     ) -> PortOutputCommandParams {
         PortOutputCommandParams {
             port_id: self.port_id,
-            start_up_info: 
-                if feedback 
-                    {StartupAndCompletionInfo::BufferAndFeedback} 
-                else 
-                    {StartupAndCompletionInfo::BufferAndNoAction},
+            start_up_info: start_up_info,
             subcommand_id: subcommand_id,
             payload: payload
 
@@ -120,7 +126,7 @@ impl<'a> MotorType for Motor<'a> {
     async fn set_acceleration_time(
         &self, 
         time: i16,
-        feedback: bool,
+        start_up_info: StartupAndCompletionInfo,
     ) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
@@ -130,14 +136,14 @@ impl<'a> MotorType for Motor<'a> {
                         time,
                     }
                 ),
-                feedback
+                start_up_info
         )).await
     }
 
     async fn set_deceleration_time(
         &self,
         time: i16,
-        feedback: bool,
+        start_up_info: StartupAndCompletionInfo,
     ) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
@@ -147,7 +153,7 @@ impl<'a> MotorType for Motor<'a> {
                         time,
                     }
                 ),
-                feedback
+                start_up_info
         )).await
     }
 
@@ -155,8 +161,8 @@ impl<'a> MotorType for Motor<'a> {
         &self, 
         speed: i8, 
         max_power: i8, 
-        use_profile: bool, 
-        feedback: bool
+        use_profile: Profile, 
+        start_up_info: StartupAndCompletionInfo
     ) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
@@ -168,15 +174,23 @@ impl<'a> MotorType for Motor<'a> {
                         use_profile
                     }
                 ),
-                feedback
+                start_up_info
         )).await
     }
 
-    async fn stop_motor(&self, use_profile: bool, feedback: bool) -> Result<Vec<u8>> {
-        self.start_speed(0, 0, use_profile, feedback).await
+    async fn stop_motor(
+        &self, 
+        use_profile: Profile, 
+        start_up_info: StartupAndCompletionInfo
+    ) -> Result<Vec<u8>> {
+        self.start_speed(0, 0, use_profile, start_up_info).await
     }
 
-    async fn set_abs_position(&self, position: i32, feedback: bool) -> Result<Vec<u8>> {
+    async fn set_abs_position(
+        &self, 
+        position: i32, 
+        start_up_info: StartupAndCompletionInfo
+    ) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
                 SubcommandType::WriteDirectModeData,
@@ -190,19 +204,19 @@ impl<'a> MotorType for Motor<'a> {
                         )
                     }
                 ),
-                feedback
+                start_up_info
             )
         ).await
     }
 
-    async fn go_to_aps_position(
+    async fn go_to_abs_position(
         &self, 
         abs_pos: i32,
         speed: i8,
         max_power: i8,
-        end_state: i8,
-        use_profile: bool,
-        feedback: bool
+        end_state: EndState,
+        use_profile: Profile,
+        start_up_info: StartupAndCompletionInfo
     ) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
@@ -214,10 +228,9 @@ impl<'a> MotorType for Motor<'a> {
                         max_power,
                         end_state,
                         use_profile,
-                        acc_dec: ACC_DEC,
                     }
                 ),
-                feedback
+                start_up_info
         )).await
     }
 
@@ -226,9 +239,9 @@ impl<'a> MotorType for Motor<'a> {
         degrees: i32,
         speed: i8,
         max_power: i8,
-        end_state: i8,
-        use_profile: bool,
-        feedback: bool
+        end_state: EndState,
+        use_profile: Profile,
+        start_up_info: StartupAndCompletionInfo
     ) -> Result<Vec<u8>> {
         self.hub.send_output_command(
             self.get_ouput_command_params(
@@ -240,10 +253,9 @@ impl<'a> MotorType for Motor<'a> {
                         max_power,
                         end_state,
                         use_profile,
-                        acc_dec: ACC_DEC,
                     }
                 ),
-                feedback
+                start_up_info
         )).await
     }
 

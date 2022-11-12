@@ -2,11 +2,12 @@
 // Simple command is transfered as is. Complicated command needs encoding.
 // See message_types for list of these commands / messages.
 
-use super::message_types::SubcommandType;
-use super::super::ports:: {
-    ACC,
-    DEC,
+use crate::ports::{
+    EndState, 
+    Profile
 };
+
+use super::message_types::SubcommandType;
 
 pub trait Serialized {
     fn serialize(&self) -> Vec<u8>;
@@ -121,11 +122,11 @@ pub struct PortModeInformationRequestParams {
 }
 
 pub enum PortModeInformationType {
-    Name            = 0x00,    // NAME	Name of the mode
-    Raw             = 0x01,    // RAW	The raw range
-    Pct             = 0x02,    // PCT	The percent range
-    Si              = 0x03,    // SI	The SI value range
-    Symbol          = 0x04,    // SYMBOL	The standard name of value
+    Name            = 0x00,    // NAME	                                Name of the mode
+    Raw             = 0x01,    // RAW	                                The raw range
+    Pct             = 0x02,    // PCT	                                The percent range
+    Si              = 0x03,    // SI	                                The SI value range
+    Symbol          = 0x04,    // SYMBOL	                            The standard name of value
     Mapping         = 0x05,    // MAPPING	 
     Internal        = 0x06,    // Used internally
     MotorBias       = 0x07,    // Motor Bias (0-100%)
@@ -136,6 +137,27 @@ pub enum PortModeInformationType {
 impl Serialized for PortModeInformationRequestParams {
     fn serialize(&self) -> Vec<u8> {
         vec![self.port_id, self.mode_id, self.information_type as u8]
+    }
+}
+
+
+/***************************************/
+/***** PortInputFormatSetupSingle ******/
+/***************************************/
+
+pub struct PortInputFormatSetupSingleParams {
+    pub port_id:                u8,
+    pub mode_id:                u8,
+    pub delta:                  u32,
+    pub enable_notifications:   bool,
+}
+
+impl Serialized for PortInputFormatSetupSingleParams {
+    fn serialize(&self) -> Vec<u8> {
+        let mut data = vec![self.port_id, self.mode_id];
+        data.append(&mut Vec::from(self.delta.to_le_bytes()));
+        data.push(if self.enable_notifications {1} else {0});
+        data
     }
 }
 
@@ -227,7 +249,7 @@ impl Serialized for SetAccTimePayload {
     fn serialize(&self) -> Vec<u8> {
         let mut data = Vec::from(self.time.to_le_bytes());
         data.append(vec![
-            ACC,
+            Profile::Acc as u8,
         ].as_mut());
         data
     }
@@ -246,7 +268,7 @@ impl Serialized for SetDecTimePayload {
     fn serialize(&self) -> Vec<u8> {
         let mut data = Vec::from(self.time.to_le_bytes());
         data.append(vec![
-            DEC,
+            Profile::Dec as u8,
         ].as_mut());
         data
     }
@@ -260,7 +282,7 @@ impl Serialized for SetDecTimePayload {
 pub struct StartSpeedPayload {
     pub speed:          i8,
     pub max_power:      i8,
-    pub use_profile:    bool,
+    pub use_profile:    Profile,
 }
 
 impl Serialized for StartSpeedPayload {
@@ -282,9 +304,8 @@ pub struct StartSpeedForDegreesPayload {
     pub degrees:        i32,
     pub speed:          i8,
     pub max_power:      i8,
-    pub end_state:      i8,
-    pub use_profile:    bool,
-    pub acc_dec:        u8,
+    pub end_state:      EndState,
+    pub use_profile:    Profile,
 }
 
 impl Serialized for StartSpeedForDegreesPayload {
@@ -293,9 +314,8 @@ impl Serialized for StartSpeedForDegreesPayload {
         data.append(vec![
             self.speed.to_le_bytes()[0],
             self.max_power.to_le_bytes()[0],
-            self.end_state.to_le_bytes()[0],
-            self.acc_dec, //self.use_profile as u8,
-            self.acc_dec,
+            (self.end_state as u8).to_le_bytes()[0],
+            self.use_profile as u8,
         ].as_mut());
         data
     }
@@ -310,9 +330,8 @@ pub struct GotoAbsolutePositionPayload {
     pub abs_pos:        i32,        // Degrees
     pub speed:          i8,
     pub max_power:      i8,
-    pub end_state:      i8,
-    pub use_profile:    bool,
-    pub acc_dec:        u8,
+    pub end_state:      EndState,
+    pub use_profile:    Profile,
 }
 
 impl Serialized for GotoAbsolutePositionPayload {
@@ -321,9 +340,8 @@ impl Serialized for GotoAbsolutePositionPayload {
         data.append(vec![
             self.speed.to_le_bytes()[0],
             self.max_power.to_le_bytes()[0],
-            self.end_state.to_le_bytes()[0],
+            (self.end_state as u8).to_le_bytes()[0],
             self.use_profile as u8,
-            self.acc_dec,
         ].as_mut());
         data
     }

@@ -24,12 +24,22 @@ impl ConnectionManager {
         Self {}
     }
 
-    pub async fn get_technic_hub(&self, peripheral_name: Option<String>, bd_add: Option<BDAddr>) -> Result<Hub> {
-        let p = self.get_peripheral(peripheral_name, bd_add).await?;
+    pub async fn get_hub(
+        &self, 
+        peripheral_name: Option<String>, 
+        bd_add: Option<BDAddr>,
+        scan_time_seconds: u64,
+    ) -> Result<Hub> {
+        let p = self.get_peripheral(peripheral_name, bd_add, scan_time_seconds).await?;
         Hub::new(p).await
     }
 
-    async fn get_peripheral(&self, mut peripheral_name: Option<String>, mut bd_add: Option<BDAddr>) -> Result<Peripheral> {
+    async fn get_peripheral(
+        &self, 
+        mut peripheral_name: Option<String>, 
+        mut bd_add: Option<BDAddr>,
+        scan_time_seconds: u64,
+    ) -> Result<Peripheral> {
         if bd_add.is_none() {
             if let Ok(x) = BDAddr::from_str("00:00:00:00:00:00") {
                 bd_add = Some(x);
@@ -38,15 +48,15 @@ impl ConnectionManager {
         if peripheral_name.is_none() {
             peripheral_name = Some(String::from_str("")?);
         }
-        let peripherals = self.get_peripherals().await?;
-        println!("{}", peripherals.len());
+        let peripherals = self.get_peripherals(scan_time_seconds).await?;
+        //println!("{}", peripherals.len());
         let mut peripheral_info: PeripheralInfo;
         if !peripherals.is_empty() {
             
             // All peripheral devices in range
             for peripheral in peripherals.into_iter() {
                 peripheral_info = self.get_peripheral_info(&peripheral).await?;
-                println!("{}", peripheral_info.local_name);
+                // println!("{}", peripheral_info.local_name);
                 if peripheral_info.local_name.eq(peripheral_name.as_ref().unwrap()) || peripheral_info.address.eq(bd_add.as_ref().unwrap()) {
                     let is_connected = peripheral.is_connected().await?;
                     //while peripheral_info.manufacturer_data.is_empty() {
@@ -68,7 +78,7 @@ impl ConnectionManager {
         Err(anyhow!("No connections found"))
     }
 
-    async fn get_peripherals(&self) -> Result<Vec<Peripheral>> {
+    async fn get_peripherals(&self, scan_time_seconds: u64) -> Result<Vec<Peripheral>> {
         let manager = Manager::new().await?;
         let adapter_list = manager.adapters().await?;
         if adapter_list.is_empty() {
@@ -78,12 +88,12 @@ impl ConnectionManager {
         let mut peripherals: Vec<Peripheral> = Vec::new();
 
         for adapter in adapter_list.iter() {
-            println!("Starting scan on {}...", adapter.adapter_info().await?);
+            //println!("Starting scan on {}...", adapter.adapter_info().await?);
             adapter
                 .start_scan(ScanFilter::default())
                 .await
                 .expect("Can't scan BLE adapter for connected devices...");
-            time::sleep(Duration::from_secs(10)).await;
+            time::sleep(Duration::from_secs(scan_time_seconds)).await;
             peripherals.append(&mut adapter.peripherals().await?);
         }
         Ok(peripherals)

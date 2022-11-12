@@ -6,7 +6,7 @@ use super::MessageTypes;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive)]
-pub enum LegoErrorTypes {
+enum LegoErrorTypes {
     Ack                     = 0x01,     //  ACK,
     Mack                    = 0x02,     //  MACK
     BufferOverflow          = 0x03,     //  Buffer Overflow

@@ -1,5 +1,3 @@
-
-
 /* Below Color consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
 pub enum Color {
     Black       = 0,
