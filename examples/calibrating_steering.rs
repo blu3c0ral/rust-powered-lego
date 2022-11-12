@@ -1,5 +1,5 @@
 // This example function calibrates the range of a steering motor and preset the middle (0)
-// It is assumed that it is easy to steer the motor and there are physical barriers in the extremes.
+// It is assumed that it is easy to steer the motor and there are physical barriers at the extremes.
 //
 //
 // 
@@ -50,13 +50,6 @@ async fn main() -> Result<()> {
     
     // Just in case, let's do it again!
     width = (width + get_degree_width_avg(&hub, port_id as u8, &motor).await?) / 2;
-
-    // No good reason - to be just below the real extreme
-    if width & 1 == 1 {
-        width -= 1;
-    } else {
-        width -= 2;
-    }
 
     // Set width to half of it
     width /= 2;
