@@ -15,20 +15,22 @@ use anyhow::{Result};
 use btleplug::api::BDAddr;
 use rust_powered_lego::{
     hub::{
-        Hub, 
-        TechnicHubPorts,
+        Hub
     },
     connection_manager::ConnectionManager, 
     HubType,
     MotorType,
-    ports::{
-        EndState, 
-        Profile, 
-        MotorModes,
-    },
     lego::message_parameters::{
         StartupAndCompletionInfo,
-    }
+    },
+    lego::{
+        consts::{
+            TechnicHubPorts,
+            EndState, 
+            Profile, 
+            MotorModes,
+        },
+    },
 };
 
 

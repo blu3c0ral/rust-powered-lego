@@ -1,7 +1,6 @@
 // Dealing with all ports types and actions
 use anyhow::{Result, Ok};
 use async_trait::async_trait;
-use num_derive::FromPrimitive;
 
 
 use crate::{
@@ -20,53 +19,16 @@ use crate::{
             SetAbsolutePositionPayload,
             WriteDirectModeDataCommands,
         }, 
-        SubcommandType
+        SubcommandType, 
+        consts::{
+            PortType,
+            Profile,
+            MotorModes,
+            EndState,
+        },
     }, MotorType, HubType
 };
 
-
-
-/* Below consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
-#[derive(Debug, FromPrimitive, PartialEq)]
-pub enum PortType {
-    UnknownDevice                       = 0,
-    SimpleMediumLinearMotor             = 1,
-    TrainMotor                          = 2,
-    Light                               = 8,
-    VoltageSensor                       = 20,
-    CurrentSensor                       = 21,
-    PiezoBuzzer                         = 22,
-    HubLed                              = 23,
-    TiltSensor                          = 34,
-    MotionSensor                        = 35,
-    ColorDistanceSensor                 = 37,
-    MediumLinearMotor                   = 38,
-    MoveHubMediumLinearMotor            = 39,
-    MoveHubTiltSensor                   = 40,
-    DuploTrainBaseMotor                 = 41,
-    DuploTrainBaseSpeaker               = 42,
-    DuploTrainBaseColorSensor           = 43,
-    DuploTrainBaseSpeedometer           = 44,
-    TechnicLargeLinearMotor             = 46,   // Technic Control+
-    TechnicXlargeLinearMotor            = 47,   // Technic Control+
-    TechnicMediumAngularMotor           = 48,   // Spike Prime
-    TechnicLargeAngularMotor            = 49,   // Spike Prime
-    TechnicMediumHubGestSensor          = 54,
-    RemoteControlButton                 = 55,
-    RemoteControlRssi                   = 56,
-    TechnicMediumHubAccelerometer       = 57,
-    TechnicMediumHubGyroSensor          = 58,
-    TechnicMediumHubTiltSensor          = 59,
-    TechnicMediumHubTemperatureSensor   = 60,
-    TechnicColorSensor                  = 61,   // Spike Prime
-    TechnicDistanceSensor               = 62,   // Spike Prime
-    TechnicForceSensor                  = 63,   // Spike Prime
-    MarioHubGestureSensor               = 71,   // https://github.com/bricklife/LEGO-Mario-Reveng
-    MarioHubBarcodeSensor               = 73,   // https://github.com/bricklife/LEGO-Mario-Reveng
-    MarioHubPantSensor                  = 74,   // https://github.com/bricklife/LEGO-Mario-Reveng
-    TechnicMediumAngularMotorGrey       = 75,   // Mindstorms
-    TechnicLargeAngularMotorGrey        = 76    // Mindstorms
-}
 
 pub const MOTOR_TYPES: [PortType; 3] = [
     PortType::TechnicLargeLinearMotor,
@@ -74,20 +36,6 @@ pub const MOTOR_TYPES: [PortType; 3] = [
     PortType::TrainMotor,
 ];
 
-
-
-pub enum Profile {
-    Acc     = 0x01,     // 0b 0000 0001
-    Dec     = 0x02,     // 0b 0000 0010
-    AccDec  = 0x03,     // 0b 0000 0011
-}
-
-
-pub enum EndState {
-    FLOAT   = 0x00, // Another word for an inactive port. I.e. NO power power supplied to a motor (high impedance).
-    HOLD    = 0x7e, // = 126. When the motor is stopped (no rotation/movement), but the driver continues to keep the current position by actively.
-    BRAKE   = 0x7f, // = 127. When the motor is shorted through the motordriver.
-}
 
 pub struct Motor<'a> {
     pub hub:        &'a Hub,
@@ -259,15 +207,4 @@ impl<'a> MotorType for Motor<'a> {
         )).await
     }
 
-}
-
-
-// Below values are empirical. No official documentation has been found.
-pub enum MotorModes {
-    Power   = 0x00,
-    Speed   = 0x01,
-    Pos     = 0x02,
-    Apos    = 0x03,
-    Load    = 0x04,
-    Calib   = 0x05,
 }

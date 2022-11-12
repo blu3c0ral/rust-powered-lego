@@ -5,7 +5,7 @@ use btleplug::platform::{Peripheral};
 
 use anyhow::{Result, anyhow, Ok};
 use num_traits::ToPrimitive;
-use tokio_stream::{StreamExt, Stream};
+use tokio_stream::Stream;
 
 
 use super::check_for_lego_error;
@@ -22,8 +22,6 @@ impl CommonMessageHeader {
         vec![0x0, 0x0, msg_type as u8]      // [msg_len, 0, mag_type]
     }
 }
-
-
 
 
 pub struct Communicator {

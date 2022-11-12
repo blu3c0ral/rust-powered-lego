@@ -18,15 +18,19 @@ use btleplug::api::ValueNotification;
 use hub::{
     PortInfoValueReply, PortInfoModeReply, PortInfoCombinationsReply
 };
-use lego::message_parameters::{
-    PortModeInformationType,
-    PortOutputCommandParams, 
-    StartupAndCompletionInfo,
+use lego::{
+    message_parameters::{
+        PortModeInformationType,
+        PortOutputCommandParams, 
+        StartupAndCompletionInfo,
+    },
+    consts:: {
+        EndState, 
+        Profile,
+    }
 };
 use ports::{
-    Motor, 
-    EndState, 
-    Profile
+    Motor,
 };
 use tokio_stream::Stream;
 

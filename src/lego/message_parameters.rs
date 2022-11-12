@@ -2,7 +2,7 @@
 // Simple command is transfered as is. Complicated command needs encoding.
 // See message_types for list of these commands / messages.
 
-use crate::ports::{
+use crate::lego::consts::{
     EndState, 
     Profile
 };

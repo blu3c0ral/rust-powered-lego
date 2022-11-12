@@ -18,35 +18,23 @@ use crate::lego::{
     Communicator,
     MessageTypes,
 };
-use crate::lego::message_parameters:: {
-    HubActionsParams,
-    HubActionsTypes,
-    PortInformationType,
-    PortInformationRequestParams,
-    PortModeInformationType,
-    PortModeInformationRequestParams,
-    PortInputFormatSetupSingleParams,
-    PortOutputCommandParams
+use crate::lego::{
+    message_parameters:: {
+        HubActionsParams,
+        HubActionsTypes,
+        PortInformationType,
+        PortInformationRequestParams,
+        PortModeInformationType,
+        PortModeInformationRequestParams,
+        PortInputFormatSetupSingleParams,
+        PortOutputCommandParams
+    },
+    consts::{
+        PortType,
+        PortInfoModeReplyCapabilities,
+    },
 };
-use crate::ports::{Motor, PortType};
-
-
-// (TODO) Implement device checking of these values
-pub enum HubTypes {
-    TechnicHub,         // # item: 88012
-    HubHub,             // # item: 88009
-}
-
-#[allow(dead_code)]
-enum HubTypesSystemId {
-    TechnicHubSystemId  = 0b1000000,
-    HubHubSystemId      = 0b1000001,
-}
-
-
-/***************************************/
-/***************** Hub *****************/
-/***************************************/
+use crate::ports::Motor;
 
 pub struct Hub {
     communicator: Communicator,
@@ -195,7 +183,6 @@ impl HubType for Hub {
 
 }
 
-
 // (TODO) Not fully implemented yet
 #[derive(Debug)]
 pub struct PortInfoValueReply {
@@ -224,14 +211,6 @@ pub struct PortInfoModeReply {
     pub output_modes:       Vec<u8>,
 }
 
-#[derive(Debug)]
-pub enum PortInfoModeReplyCapabilities {
-    Output                  = 0x0,  // Output (seen from Hub)
-    Input                   = 0x1,  // Input (seen from Hub)
-    LogicalCombinable       = 0x2,  // Logical Combinable
-    LogicalSynchronizable   = 0x3,  // Logical Synchronizable
-}
-
 fn parse_capabilities(capabilities: u8) -> Vec<PortInfoModeReplyCapabilities> {
     let mut res: Vec<PortInfoModeReplyCapabilities> = Vec::new();
     if capabilities & 0x1 == 0x1 {
@@ -258,27 +237,4 @@ fn parse_io_modes(mut modes: u16) -> Vec<u8> {
         modes >>= 1;
     }
     res
-}
-
-
-
-/***************************************/
-/************* Technic Hub *************/
-/***************************************/
-
-
-/* Below consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
-/* Same values are in https://github.com/sciguy16/lego-powered-up/blob/main/lego-powered-up/src/hubs.rs */
-#[derive(Clone, Copy)]
-pub enum TechnicHubPorts {
-    A               = 0x00,
-    B               = 0x01,
-    C               = 0x02,
-    D               = 0x03,
-    LED             = 0x32,
-    CURRENT         = 0x3B,
-    VOLTAGE         = 0x3C,
-    ACCELEROMETER   = 0x61,
-    GYRO            = 0x62,
-    TILT            = 0x63,
 }

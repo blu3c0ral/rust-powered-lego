@@ -1,21 +1,9 @@
-use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use anyhow::{Result, Ok, bail};
 
 use super::MessageTypes;
 
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive)]
-enum LegoErrorTypes {
-    Ack                     = 0x01,     //  ACK,
-    Mack                    = 0x02,     //  MACK
-    BufferOverflow          = 0x03,     //  Buffer Overflow
-    Timeout                 = 0x04,     //  Timeout
-    CommandNotRecognized    = 0x05,     //  Command NOT recognized
-    InvalidUse              = 0x06,     //  Invalid use (e.g. parameter error(s)
-    Overcurrent             = 0x07,     //  Overcurrent
-    InternalError           = 0x08,     //  Internal ERROR
-}
+use crate::lego::consts::LegoErrorTypes;
 
 fn parse_lego_error(msg: &Vec<u8>) -> Result<String> {
     let slc = msg;
