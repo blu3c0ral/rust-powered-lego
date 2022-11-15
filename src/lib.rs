@@ -109,6 +109,12 @@ pub trait MotorType {
         start_up_info: StartupAndCompletionInfo,
     ) -> Result<Vec<u8>>;
 
+    async fn start_power(
+        &self, 
+        power: i8, 
+        start_up_info: StartupAndCompletionInfo
+    ) -> Result<Vec<u8>>;
+
     async fn start_speed(
         &self, 
         speed: i8, 
@@ -118,7 +124,8 @@ pub trait MotorType {
     ) -> Result<Vec<u8>>;
 
     async fn stop_motor(
-        &self, 
+        &self,
+        end_state: EndState,
         use_profile: Profile, 
         start_up_info: StartupAndCompletionInfo
     ) -> Result<Vec<u8>>;

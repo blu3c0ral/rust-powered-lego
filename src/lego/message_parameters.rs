@@ -9,6 +9,10 @@ use crate::lego::consts::{
 
 use super::message_types::SubcommandType;
 
+
+// The communicator is expected to send command as [u8]
+// Since each command has different way of definition and payload,
+// this trait aims to standardized the serialization process.
 pub trait Serialized {
     fn serialize(&self) -> Vec<u8>;
 }
@@ -366,12 +370,16 @@ impl Serialized for WriteDirectModeDataPayload {
 }
 
 pub enum WriteDirectModeDataCommands {
+    StartPower(StartPowerPayload),
     SetAbsolutePosition(SetAbsolutePositionPayload),
 }
 
 impl Serialized for WriteDirectModeDataCommands {
     fn serialize(&self) -> Vec<u8> {
         match self {
+            WriteDirectModeDataCommands::StartPower(payload) => {
+                payload.serialize()
+            },
             WriteDirectModeDataCommands::SetAbsolutePosition(payload) => {
                 payload.serialize()
             },
@@ -381,6 +389,21 @@ impl Serialized for WriteDirectModeDataCommands {
 
 
 /************* WriteDirectModeDataCommands *************/
+
+
+/***************************************/
+/************* StartPower **************/
+/***************************************/
+
+pub struct StartPowerPayload {
+    pub power: i8,
+}
+
+impl Serialized for StartPowerPayload {
+    fn serialize(&self) -> Vec<u8> {
+        Vec::from(self.power.to_le_bytes())
+    }
+}
 
 
 /***************************************/

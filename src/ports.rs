@@ -17,7 +17,8 @@ use crate::{
             GotoAbsolutePositionPayload,
             WriteDirectModeDataPayload,
             SetAbsolutePositionPayload,
-            WriteDirectModeDataCommands,
+            WriteDirectModeDataCommands, 
+            StartPowerPayload,
         }, 
         SubcommandType, 
         consts::{
@@ -66,6 +67,26 @@ impl<'a> Motor<'a> {
 
         }
     }
+
+    // wdm = write direct mode
+    fn get_wdm_ouput_command_params(
+        &self,
+        mode : MotorModes,
+        payload: WriteDirectModeDataCommands,
+        start_up_info: StartupAndCompletionInfo
+    ) -> PortOutputCommandParams {
+        self.get_ouput_command_params(
+            SubcommandType::WriteDirectModeData,
+            SubcommandPayload::WriteDirectModeData(
+                WriteDirectModeDataPayload {
+                    mode : mode as u8,
+                    payload: payload,
+                    
+                }
+            ),
+            start_up_info
+        )
+    }
 }
 
 #[async_trait]
@@ -105,6 +126,24 @@ impl<'a> MotorType for Motor<'a> {
         )).await
     }
 
+    async fn start_power(
+        &self, 
+        power: i8, 
+        start_up_info: StartupAndCompletionInfo
+    ) -> Result<Vec<u8>> {        
+        self.hub.send_output_command(
+            self.get_wdm_ouput_command_params(
+                MotorModes::Power, 
+                WriteDirectModeDataCommands::StartPower(
+                    StartPowerPayload {
+                        power,
+                    },
+                ), 
+                start_up_info
+            )
+        ).await
+    }
+
     async fn start_speed(
         &self, 
         speed: i8, 
@@ -127,31 +166,33 @@ impl<'a> MotorType for Motor<'a> {
     }
 
     async fn stop_motor(
-        &self, 
+        &self,
+        end_state: EndState,
         use_profile: Profile, 
         start_up_info: StartupAndCompletionInfo
     ) -> Result<Vec<u8>> {
-        self.start_speed(0, 0, use_profile, start_up_info).await
+        // Below distinction is dictated by the Docs
+        match end_state {
+            EndState::HOLD => self.start_speed(0, 0, use_profile, start_up_info).await,
+            _ => {
+                self.start_power(end_state as i8, start_up_info).await
+            }
+        }
     }
 
     async fn set_abs_position(
         &self, 
         position: i32, 
         start_up_info: StartupAndCompletionInfo
-    ) -> Result<Vec<u8>> {
+    ) -> Result<Vec<u8>> {        
         self.hub.send_output_command(
-            self.get_ouput_command_params(
-                SubcommandType::WriteDirectModeData,
-                SubcommandPayload::WriteDirectModeData(
-                    WriteDirectModeDataPayload {
-                        mode : MotorModes::Pos as u8,
-                        payload: WriteDirectModeDataCommands::SetAbsolutePosition(
-                            SetAbsolutePositionPayload {
-                                position
-                            },
-                        )
-                    }
-                ),
+            self.get_wdm_ouput_command_params(
+                MotorModes::Pos, 
+                WriteDirectModeDataCommands::SetAbsolutePosition(
+                    SetAbsolutePositionPayload {
+                        position
+                    },
+                ), 
                 start_up_info
             )
         ).await
@@ -206,5 +247,4 @@ impl<'a> MotorType for Motor<'a> {
                 start_up_info
         )).await
     }
-
 }
