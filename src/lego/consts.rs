@@ -41,7 +41,7 @@ pub enum TechnicHubPorts {
 /***************************************/
 
 /* Below consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
-#[derive(Debug, FromPrimitive, PartialEq)]
+#[derive(Debug, FromPrimitive, PartialEq, Clone, Copy)]
 pub enum PortType {
     UnknownDevice                       = 0,
     SimpleMediumLinearMotor             = 1,
@@ -82,18 +82,21 @@ pub enum PortType {
     TechnicLargeAngularMotorGrey        = 76    // Mindstorms
 }
 
+#[derive(Clone, Copy)]
 pub enum Profile {
     Acc     = 0x01,     // 0b 0000 0001
     Dec     = 0x02,     // 0b 0000 0010
     AccDec  = 0x03,     // 0b 0000 0011
 }
 
+#[derive(Clone, Copy)]
 pub enum EndState {
     FLOAT   = 0x00, // Another word for an inactive port. I.e. NO power power supplied to a motor (high impedance).
     HOLD    = 0x7e, // = 126. When the motor is stopped (no rotation/movement), but the driver continues to keep the current position by actively.
     BRAKE   = 0x7f, // = 127. When the motor is shorted through the motordriver.
 }
 
+#[derive(Clone, Copy)]
 // Below values are empirical. No official documentation has been found.
 pub enum MotorModes {
     Power   = 0x00,
@@ -104,7 +107,7 @@ pub enum MotorModes {
     Calib   = 0x05,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum PortInfoModeReplyCapabilities {
     Output                  = 0x0,  // Output (seen from Hub)
     Input                   = 0x1,  // Input (seen from Hub)
@@ -131,7 +134,9 @@ pub enum LegoErrorTypes {
     InternalError           = 0x08,     //  Internal ERROR
 }
 
+
 /* Below Color consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
+#[derive(Clone, Copy)]
 pub enum Color {
     Black       = 0,
     Pink        = 1,

@@ -43,6 +43,7 @@ pub enum MessageTypes {                             //  Comm.	    Rply2   Notes
 //
 // Parameters structs for (some of the) SubcommandType is located in message_parameters.rs file
 //
+#[derive(Clone, Copy)]
 pub enum SubcommandType {
     StartPowerSync              = 0x02,
     SetAccTime                  = 0x05,

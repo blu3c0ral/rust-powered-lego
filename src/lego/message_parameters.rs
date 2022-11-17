@@ -26,6 +26,7 @@ pub struct HubPropertiesParams {
     pub operation:          HubPropertiesOperations,
 }
 
+#[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum HubPropertiesProperties {
     AdvertisingName                 = 0x01, // Advertising Name
@@ -45,6 +46,7 @@ pub enum HubPropertiesProperties {
     HardwareNetworkFamily           = 0x0F,	// Hardware Network Family
 }
 
+#[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum HubPropertiesOperations {
     Set             = 0x01, // Set              (Downstream)
@@ -70,6 +72,7 @@ pub struct HubActionsParams {
     pub action_type:        HubActionsTypes,
 }
 
+#[derive(Clone, Copy)]
 pub enum HubActionsTypes {
     SwitchOffHub            = 0x01, // Switch Off Hub
     Disconnect              = 0x02,	// Disconnect
@@ -102,6 +105,7 @@ pub struct PortInformationRequestParams {
     pub information_type:   PortInformationType,
 }
 
+#[derive(Clone, Copy)]
 pub enum PortInformationType {
     PortValue                   = 0x00, // Port Value
     ModeInfo                    = 0x01, // Mode Info
@@ -125,6 +129,7 @@ pub struct PortModeInformationRequestParams {
     pub information_type:   PortModeInformationType,
 }
 
+#[derive(Clone, Copy)]
 pub enum PortModeInformationType {
     Name            = 0x00,    // NAME	                                Name of the mode
     Raw             = 0x01,    // RAW	                                The raw range
@@ -185,6 +190,7 @@ impl Serialized for PortOutputCommandParams {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum StartupAndCompletionInfo {
     BufferAndNoAction               = 0b00000000,
     BufferAndFeedback               = 0b00000001,
