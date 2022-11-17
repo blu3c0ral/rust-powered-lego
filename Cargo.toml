@@ -2,6 +2,11 @@
 name = "rust-powered-lego"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+description = "This crate aims to control a regular Powered Up motor using a Technic Hub."
+homepage = "https://github.com/blu3c0ral/rust-powered-lego/"
+repository = "https://github.com/blu3c0ral/rust-powered-lego/"
+readme = "README.md"
 
 [dependencies]
 btleplug = "0.10.1"
