@@ -20,7 +20,7 @@ enum HubTypesSystemId {
 
 /* Below consts are taken from https://github.com/corneliusmunz/legoino/blob/master/src/Lpf2HubConst.h */
 /* Same values are in https://github.com/sciguy16/lego-powered-up/blob/main/lego-powered-up/src/hubs.rs */
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum TechnicHubPorts {
     A               = 0x00,
     B               = 0x01,
@@ -82,21 +82,21 @@ pub enum PortType {
     TechnicLargeAngularMotorGrey        = 76    // Mindstorms
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Profile {
     Acc     = 0x01,     // 0b 0000 0001
     Dec     = 0x02,     // 0b 0000 0010
     AccDec  = 0x03,     // 0b 0000 0011
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum EndState {
     FLOAT   = 0x00, // Another word for an inactive port. I.e. NO power power supplied to a motor (high impedance).
     HOLD    = 0x7e, // = 126. When the motor is stopped (no rotation/movement), but the driver continues to keep the current position by actively.
     BRAKE   = 0x7f, // = 127. When the motor is shorted through the motordriver.
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 // Below values are empirical. No official documentation has been found.
 pub enum MotorModes {
     Power   = 0x00,
